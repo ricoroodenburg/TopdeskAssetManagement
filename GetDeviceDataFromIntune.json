@@ -1,0 +1,146 @@
+{    
+    "formatVersion": "2.9",
+    "exportDate": 1661109001273,
+    "action": {
+        "name": "Get device data from Intune",
+        "description": "",
+        "configuration": {
+            "variables": [
+                {
+                    "name": "AADTenantID",
+                    "value": ""
+                },
+                {
+                    "name": "AADClientApplicationID",
+                    "value": ""
+                },
+                {
+                    "name": "AADClientSecret",
+                    "value": ""
+                },
+                {
+                    "name": "MSGraphAPIURL",
+                    "value": "https://graph.microsoft.com/v1.0"
+                },
+                {
+                    "name": "topdesk_url",
+                    "value": ""
+                },
+                {
+                    "name": "topdesk_user",
+                    "value": ""
+                },
+                {
+                    "name": "topdesk_applicationpassword",
+                    "value": ""
+                }
+            ],
+            "mappingDefinitions": [],
+            "steps": [
+                {
+                    "type": "HTTP_REQUEST",
+                    "executionCondition": "ONLY_WHEN_PREVIOUS_SUCCEEDED",
+                    "customExecutionCondition": "",
+                    "name": "Step 1 - Connect to Microsoft Graph API",
+                    "method": "POST",
+                    "url": "https://login.microsoftonline.com/${_variables[\"AADTenantID\"]}/oauth2/v2.0/token",
+                    "headers": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/x-www-form-urlencoded"
+                        }
+                    ],
+                    "escapeBodyValues": true,
+                    "bodyType": "FREEMARKER_TEMPLATE",
+                    "logRequestBody": true,
+                    "logResponseBody": true,
+                    "body": "client_id=${_variables[\"AADClientApplicationID\"]}&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default&client_secret=${_variables[\"AADClientSecret\"]}&grant_type=client_credentials"
+                },
+                {
+                    "type": "HTTP_REQUEST",
+                    "executionCondition": "ONLY_WHEN_PREVIOUS_SUCCEEDED",
+                    "customExecutionCondition": "",
+                    "name": "Step 2 - Get IMEI based on serialnumber",
+                    "method": "GET",
+                    "url": "${_variables.MSGraphAPIURL?noEsc}/deviceManagement/managedDevices?$filter=serialNumber eq '${_card[\"serialnumber\"]!}'&$select=imei",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer ${_responses[\"Step 1 - Connect to Microsoft Graph API\"][\"body\"].access_token}"
+                        }
+                    ],
+                    "escapeBodyValues": false,
+                    "bodyType": "FREEMARKER_TEMPLATE",
+                    "logRequestBody": true,
+                    "logResponseBody": true,
+                    "body": ""
+                },
+                {
+                    "type": "HTTP_REQUEST",
+                    "executionCondition": "CUSTOM",
+                    "customExecutionCondition": "<#-- Check if the device has an IMEI number and if it is not already filled in -->\n<#-- IMEI available? -->\n\n<#assign x = true>\n\n<#assign response = '${_responses[\"Step 2 - Get IMEI based on serialnumber\"][\"body\"].value[0].imei}'>\n<#assign value = '${_card[\"imei-number\"]!}'>\n\n<#if response?has_content>\n <#if value?has_content>\n  <#assign x = false>\n </#if>\n<#else>\n <#assign x = false>\n</#if>\n\n${x}",
+                    "name": "Step 3 - Set IMEI on Asset",
+                    "method": "POST",
+                    "url": "${_variables.topdesk_url?noEsc}/tas/api/assetmgmt/assets/${_card[\"id\"]!}",
+                    "headers": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "name": "Authorization",
+                            "value": "Basic  ${_base64(_variables.topdesk_user + \":\" + _variables.topdesk_applicationpassword)}"
+                        }
+                    ],
+                    "escapeBodyValues": true,
+                    "bodyType": "FREEMARKER_TEMPLATE",
+                    "logRequestBody": true,
+                    "logResponseBody": true,
+                    "body": "{\n  \"imei-number\": \"${_responses[\"Step 2 - Get IMEI based on serialnumber\"][\"body\"].value[0].imei}\"\n}"
+                },
+                {
+                    "type": "HTTP_REQUEST",
+                    "executionCondition": "ONLY_WHEN_PREVIOUS_SUCCEEDED",
+                    "customExecutionCondition": "",
+                    "name": "Step 4 - Get wiFiMacAddress based on serialnumber",
+                    "method": "GET",
+                    "url": "${_variables.MSGraphAPIURL?noEsc}/deviceManagement/managedDevices?$filter=serialNumber eq '${_card[\"serialnumber\"]!}'&$select=wiFiMacAddress",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer ${_responses[\"Step 1 - Connect to Microsoft Graph API\"][\"body\"].access_token}"
+                        }
+                    ],
+                    "escapeBodyValues": false,
+                    "bodyType": "FREEMARKER_TEMPLATE",
+                    "logRequestBody": true,
+                    "logResponseBody": true,
+                    "body": ""
+                },
+                {
+                    "type": "HTTP_REQUEST",
+                    "executionCondition": "CUSTOM",
+                    "customExecutionCondition": "<#-- Check if the device has WLAN MAC and if it is not already filled in -->\n<#-- WLAN MAC available? -->\n\n<#assign x = true>\n\n<#assign response = '${_responses[\"Step 4 - Get wiFiMacAddress based on serialnumber\"][\"body\"].value[0].wiFiMacAddress}'>\n<#assign value = '${_card[\"mac-adres-wlan\"]!}'>\n\n<#if response?has_content>\n <#if value?has_content>\n  <#assign x = false>\n </#if>\n<#else>\n <#assign x = false>\n</#if>\n\n${x}",
+                    "name": "Step 5 - Set WiFi Mac on Asset",
+                    "method": "POST",
+                    "url": "${_variables.topdesk_url?noEsc}/tas/api/assetmgmt/assets/${_card[\"id\"]!}",
+                    "headers": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "name": "Authorization",
+                            "value": "Basic  ${_base64(_variables.topdesk_user + \":\" + _variables.topdesk_applicationpassword)}"
+                        }
+                    ],
+                    "escapeBodyValues": true,
+                    "bodyType": "FREEMARKER_TEMPLATE",
+                    "logRequestBody": true,
+                    "logResponseBody": true,
+                    "body": "{\n  \"mac-adres-wlan\": \"${_responses[\"Step 4 - Get wiFiMacAddress based on serialnumber\"][\"body\"].value[0].wiFiMacAddress?upper_case}\"\n}"
+                }
+            ]
+        }
+    }
+}
