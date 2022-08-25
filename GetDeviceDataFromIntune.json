@@ -8,15 +8,15 @@
             "variables": [
                 {
                     "name": "AADTenantID",
-                    "value": ""
+                    "value": "<Directory (tenant) ID>"
                 },
                 {
                     "name": "AADClientApplicationID",
-                    "value": ""
+                    "value": "<Application (client) ID>"
                 },
                 {
                     "name": "AADClientSecret",
-                    "value": ""
+                    "value": "<Secret Key Value>"
                 },
                 {
                     "name": "MSGraphAPIURL",
@@ -24,15 +24,15 @@
                 },
                 {
                     "name": "topdesk_url",
-                    "value": ""
+                    "value": "<https://customer.topdesk.net>"
                 },
                 {
                     "name": "topdesk_user",
-                    "value": ""
+                    "value": "<USER>"
                 },
                 {
                     "name": "topdesk_applicationpassword",
-                    "value": ""
+                    "value": "<APPLICATION-PASSWORD>"
                 }
             ],
             "mappingDefinitions": [],
